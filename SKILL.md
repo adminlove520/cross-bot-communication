@@ -1,46 +1,45 @@
 # Cross-Bot Communication
 
-> 跨 Bot 通信的通用解决方案
+> 跨 Bot 通信的智能解决方案
 
 ## 功能
 
-- 检测 Telegram 群/频道中的 Bot 成员
-- 验证 Bot 身份和状态（管理员/普通成员）
-- 自动选择最佳通信方式
-- 支持配置化管理
+- ✅ 零配置自动检测 - 用户只需把 Bot 拉进群
+- ✅ 自动识别群/频道中的 Bot 成员
+- ✅ 智能选择最佳通信方式
+- ✅ 身份验证
 
-## 核心原则
+## 核心原理
 
-**Telegram Bot 无法收到其他 Bot 发送的消息**（除非是管理员）
+**Telegram Bot 限制**: Bot 无法收到其他 Bot 消息（除非管理员）
 
 ## 使用
 
-### 检查群成员
+### 自动检测
 
-```bash
-# 使用 Telegram Bot API
-curl "https://api.telegram.org/bot<TOKEN>/getChatAdministrators?chat_id=<GROUP_ID>"
-```
+用户说 "联系 XX Bot" → Skill 自动：
+1. 检查 XX Bot 是否在当前群
+2. 检查是否是管理员
+3. 选择最佳通信方式并执行
 
-### 通信方式选择
+### 零配置
 
-| 目标 Bot 状态 | 推荐方式 |
-|--------------|---------|
-| 是群管理员 | 直接艾特 |
-| 在同一频道 | 频道中转 |
-| 其他 | GitHub Discussion / sessions_send |
+| 用户操作 | Bot 自动 |
+|----------|----------|
+| 把 Bot 拉进群 | 自动检测成员 |
+| 把 Bot 拉进频道 | 自动检测成员 |
+| 无需配置 | 自动记录状态 |
 
 ## 配置
 
-在 `config.json` 中配置：
+可选配置 `config.json`：
 
 ```json
 {
-  "bot_token": "YOUR_TOKEN",
-  "default_channel": "CHANNEL_ID"
+  "fallback_channel": "CHANNEL_ID"
 }
 ```
 
 ## 更新日志
 
-- 2026-03-12: 初始版本 - 通用跨 Bot 通信方案
+- 2026-03-12: 零配置自动检测版本
