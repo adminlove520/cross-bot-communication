@@ -1,155 +1,174 @@
 # Cross-Bot Communication Skill
 
-> 跨 Bot 通信的智能解决方案 - 零配置自动检测
+> 跨 Bot 通信的智能解决方案 - 完整架构设计
 
-## 核心原理
+## 问题背景
 
-### Telegram```
-人类发 Bot 限制
+Telegram 群聊中，**Bot 无法收到其他 Bot 发送的消息**（除非是管理员）。
 
-消息 → Bot A 能收到 ✅
-Bot A 发消息 → Bot B 无法收到 ❌ (普通成员)
-Bot A 发消息 → Bot B 能收到 ✅ (Bot A 是管理员)
-```
-
-### 智能解决方案
-
-用户只需做一件事：**把 Bot 拉进群/频道**
-
-其他全部**自动完成**！
+本 Skill 提供了一套完整的解决方案，包含关系绑定、自动检测、智能通信。
 
 ---
 
-## 自动检测流程
+## 完整流程架构
 
-### 1. 获取群/频道成员
-
-使用 Telegram Bot API 自动获取：
-
-```bash
-# 获取成员数量
-GET https://api.telegram.org/bot<TOKEN>/getChatMembersCount?chat_id=<ID>
-
-# 获取管理员列表
-GET https://api.telegram.org/bot<TOKEN>/getChatAdministrators?chat_id=<ID>
-
-# 获取成员列表
-GET https://api.telegram.org/bot<TOKEN>/getChatMember?chat_id=<ID>&user_id=<USER_ID>
+```mermaid
+flowchart TD
+    A[用户拉 bot 进群] --> B{同时拉主人进群?}
+    B -->|是| C[自动绑定: 主人ID ↔ botID]
+    B -->|否| D[提示用户绑定关系]
+    
+    C --> E[用户拉 bot 进频道]
+    E --> F{我是管理员?}
+    F -->|是| G[将新 bot 设为管理员]
+    F -->|否| H[使用其他通信方式]
+    
+    G --> I[自动构建社交关系表]
+    I --> J{目标 Bot 在同一群?}
+    J -->|是| K{目标 Bot 是管理员?}
+    J -->|否| L{目标 Bot 在同一频道?}
+    
+    K -->|是| M[直接艾特]
+    K -->|否| L
+    L -->|是| N[频道中转]
+    L -->|否| O[GitHub Discussion]
+    
+    M --> P[发送消息]
+    N --> P
+    O --> P
 ```
 
-### 2. 自动识别 Bot
+---
 
-遍历群成员，根据以下特征识别 Bot：
-- `user.is_bot = true`
-- 用户名以 `_bot` 结尾
+## 核心步骤
 
-### 3. 自动记录信息
+### 步骤 1: 关系绑定
 
-自动构建已知 Bot 数据库：
+```mermaid
+sequenceDiagram
+    participant 用户
+    participant 群
+    participant Bot
+    
+    用户->>群: 同时拉主人+bot进群
+    群->>Bot: 自动记录: 主人ID ↔ botID
+    Bot->>Bot: 社交关系: 这是 XXX 的 bot
+```
+
+### 步骤 2: 自动检测
+
+```mermaid
+flowchart LR
+    A[获取群成员] --> B[获取频道成员]
+    B --> C{找到目标 Bot?}
+    C -->|是| D[检查权限]
+    C -->|否| E[返回未找到]
+    D --> F{是管理员?}
+    F -->|是| G[✅ 可直接艾特]
+    F -->|否| H[⚠️ 需要频道中转]
+```
+
+### 步骤 3: 智能通信
+
+| 目标 Bot 状态 | 通信方式 | 成功率 |
+|--------------|---------|--------|
+| 在同一群 + 是管理员 | 直接艾特 | ✅ 高 |
+| 在同一频道 | 频道中转 | ✅ 高 |
+| 都不在 | GitHub Discussion | ⚠️ 异步 |
+
+---
+
+## 关键设计点
+
+### 1. 关系绑定
+
+```
+主人 + bot 同时进群
+↓
+自动识别绑定关系
+↓
+社交关系表更新
+```
+
+### 2. 管理员权限
+
+```
+步骤:
+1. 检查自己是否是管理员
+2. 如果是 → 自动把新 bot 设为管理员
+3. 这样新 bot 也能收到其他 bot 消息
+```
+
+### 3. 社交关系表
 
 ```json
 {
-  "@bot1": {
-    "name": "Bot 1",
-    "groups": ["GROUP_ID_1"],
-    "channels": ["CHANNEL_ID_1"],
-    "admin_of": ["GROUP_ID_2"]
-  }
+  "relations": [
+    {
+      "owner_id": "123456",
+      "owner_name": "张三",
+      "bot_username": "@bot1",
+      "groups": ["-100123", "-100456"],
+      "channels": ["-100789"]
+    }
+  ]
 }
 ```
 
-### 4. 智能选择通信方式
+### 4. 本体 vs subagent
 
-| 目标 Bot 状态 | 通信方式 |
-|--------------|---------|
-| 是当前群管理员 | 直接艾特 ✅ |
-| 在同一频道 | 频道中转 ✅ |
-| 不在任何共同群/频道 | GitHub Discussion / sessions_send |
-
----
-
-## 使用方法
-
-### 场景 1: 在群里发现新 Bot
-
-当有新 Bot 加入群时，Skill 自动：
-1. 检测到新成员
-2. 获取其信息（用户名、是否管理员）
-3. 更新已知 Bot 列表
-
-### 场景 2: 想联系某个 Bot
-
-```
-用户: "联系小敏"
-↓
-Skill 自动检查:
-  - 小敏在当前群吗？ → 否
-  - 小敏在 OpenDiskHub 频道吗？ → 是
-  - 使用频道中转 → 发送消息到频道并 @小敏
-```
-
-### 场景 3: 不确定对方身份
-
-```
-用户: "确认这是小隐吗？"
-↓
-Skill 自动:
-  - 获取小隐在当前群的信息
-  - 检查是否是管理员
-  - 返回验证结果
-```
+| 类型 | 特征 | 处理方式 |
+|------|------|---------|
+| 本体 | 有完整记忆 | 正常通信 |
+| subagent | 无记忆 | 需要加载知识 |
 
 ---
 
 ## 零配置设计
 
-### 用户需要做的
+用户只需做：
 
 | 操作 | 说明 |
 |------|------|
-| 添加 Bot 到群 | 只需这一步 |
-| 添加 Bot 到频道 | 只需这一步 |
+| 1. 把 bot 拉进群 | 自动绑定关系 |
+| 2. 把 bot 拉进频道 | 自动检测 |
+| 3. (可选) 设置 bot 为管理员 | 提升通信成功率 |
 
-### 自动完成的
-
-| 功能 | 说明 |
-|------|------|
-| 识别 Bot | 自动检测 |
-| 获取信息 | API 自动获取 |
-| 记录状态 | 本地/内存自动存储 |
-| 选择方案 | 根据状态智能选择 |
+其他全部**自动完成**！
 
 ---
 
-## 配置 (可选)
+## 检测 API
 
-如果需要特殊配置：
+```bash
+# 获取群成员
+GET https://api.telegram.org/bot<TOKEN>/getChatMembersCount?chat_id=<ID>
 
-```json
-{
-  "fallback_channel": "DEFAULT_CHANNEL_ID",
-  "fallback_method": "github_discussion"
-}
+# 获取管理员
+GET https://api.telegram.org/bot<TOKEN>/getChatAdministrators?chat_id=<ID>
+
+# 获取成员信息
+GET https://api.telegram.org/bot<TOKEN>/getChatMember?chat_id=<ID>&user_id=<USER_ID>
 ```
 
 ---
 
 ## 常见问题
 
-### Q: 需要 bot token 吗？
+### Q: 需要配置什么？
 
-A: **不需要**！使用当前 Bot 的 token 自动完成所有检测。
+A: **零配置**！只需把 bot 拉进群/频道。
 
-### Q: 需要手动配置群 ID 吗？
+### Q: 怎么知道谁是谁的主人？
 
-A: **不需要**！当 Bot 在群里时，API 自动返回群信息。
+A: 自动检测！当用户同时拉人和 bot 进群时，自动绑定。
 
-### Q: 如何知道有哪些 Bot？
+### Q: subagent 怎么办？
 
-A: 自动检测！当用户说"联系 XX"时，Skill 会自动在已知 Bot 中查找。
+A: 目前 subagent 无法继承本体记忆，这是 OpenClaw 的限制。建议在消息中添加身份标记。
 
 ---
 
 ## 更新日志
 
-- 2026-03-12: 初始版本 - 零配置自动检测
+- 2026-03-12: 完整架构设计 - 含 Mermaid 流程图
