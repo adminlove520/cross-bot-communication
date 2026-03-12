@@ -43,40 +43,82 @@
 
 ## 完整通信流程
 
-### 场景
+### 场景 1: 新群/新 bot
 用户在群里说："联系小敏，让它给自己主人说每天要开会"
 
-### 流程步骤
+### 场景 2: 已有群/频道
+安装 skill 后，自动扫描已有群组，构建关系表
+
+---
+
+## 完整流程（含扫描）
 
 ```mermaid
-sequenceDiagram
-    participant 用户
-    participant subagent群内
-    participant 主agent
-    participant subagent执行
-    participant 目标Bot
+flowchart TD
+    A[安装 skill] --> B{是否有已有群/频道?}
     
-    用户->>subagent群内: "联系小敏，让它给自己主人说每天要开会"
-    subagent群内->>主agent: 传递信息 + 传话内容
-    主agent->>主agent: 决策：
-    主agent->>主agent: 1. 查找小敏的主人
-    主agent->>主agent: 2. 检查通信条件
-    主agent->>主agent: 3. 选择通信方式
-    主agent->>subagent执行: 生成指令：频道中转 @小敏
-    subagent执行->>目标Bot: 发送消息
-    目标Bot->>目标Bot的主人: 传达内容
+    B -->|是| C[扫描已有群组/频道]
+    B -->|否| D[等待用户拉 bot 进群]
+    
+    C --> E[自动构建社交关系表]
+    E --> F[检查硬性条件]
+    
+    D --> G[用户拉 bot 进群]
+    G --> H[自动绑定关系]
+    H --> F
+    
+    F --> I{硬性条件满足?}
+    
+    I -->|是| J[✅ 可直接通信]
+    I -->|否| K[诚实告知 + 建议方案]
+    
+    J --> L[用户: 联系 XXX]
+    K --> L
+    
+    L --> M[subagent 接收]
+    M --> N[→ 主 agent 决策]
+    N --> O[→ subagent 执行]
+    O --> P[发送消息]
 ```
 
-### 详细说明
+---
 
-| 步骤 | 执行者 | 操作 |
-|------|--------|------|
-| 1 | 用户 | 在群里发送消息 |
-| 2 | subagent | 接收消息，识别意图 |
-| 3 | subagent → 主agent | 传递信息（需要联系谁、传什么话） |
-| 4 | 主agent | 决策（查表、判断、生成指令） |
-| 5 | subagent | 执行指令（发送消息） |
-| 6 | 目标Bot | 收到消息，转发给主人 |
+## 硬性条件检查
+
+| 条件 | 状态 | 处理 |
+|------|------|------|
+| bot 在同一群 | ✅ | 可尝试 |
+| bot 是管理员 | ✅ | 可直接艾特 |
+| bot 在同一频道 | ✅ | 频道中转 |
+| 都不满足 | ❌ | 诚实告知 |
+
+### 诚实告知示例
+
+```
+"我扫描了现有群组和频道：
+- 小敏在 OpenDiskHub 频道 ✓
+- 但小敏不是管理员 ⚠️
+
+建议方案：
+1. 设置小敏为管理员 → 可直接艾特
+2. 或者我在频道中转联系它
+
+您选择哪个？"
+```
+
+---
+
+## 信息传递流程
+
+```
+subagent 收到用户消息
+    ↓
+解析：谁？传什么话？用什么方式？
+    ↓
+传递给主 agent
+    ↓
+主 agent 决策
+```
 
 ---
 
@@ -91,21 +133,7 @@ sequenceDiagram
 
 ---
 
-## 关键设计点
-
-### 1. 信息传递
-
-```
-subagent 收到用户消息
-    ↓
-解析：谁？传什么话？用什么方式？
-    ↓
-传递给主 agent
-    ↓
-主 agent 决策
-```
-
-### 2. 社交关系表
+## 社交关系表
 
 ```json
 {
@@ -115,28 +143,12 @@ subagent 收到用户消息
       "owner_name": "千里",
       "bot_username": "@YinxiaBot",
       "bot_name": "小隐",
-      "groups": ["-100123"],
-      "channels": ["-100456"],
+      "groups": ["-100123", "-100456"],
+      "channels": ["-100789"],
       "is_admin": true
     }
   ]
 }
-```
-
-### 3. 智能通信方式
-
-| 目标 Bot 状态 | 通信方式 | 说明 |
-|--------------|---------|------|
-| 在同一群 + 是管理员 | 直接艾特 | ✅ 最佳 |
-| 在同一频道 | 频道中转 | ✅ 可行 |
-| 都不在 | 诚实告知 + 建议加入茶馆 | ⚠️ 需要引导 |
-
-### 4. 找不到时的处理
-
-```
-"抱歉，我在当前群/频道找不到 XXX。
-能否让他/他的主人加入茶馆？
-这样我就能联系到他了。"
 ```
 
 ---
@@ -155,51 +167,41 @@ subagent 收到用户消息
 
 ---
 
-## 检测 API
-
-```bash
-# 获取群成员
-GET https://api.telegram.org/bot<TOKEN>/getChatMembersCount?chat_id=<ID>
-
-# 获取管理员
-GET https://api.telegram.org/bot<TOKEN>/getChatAdministrators?chat_id=<ID>
-
-# 获取成员信息
-GET https://api.telegram.org/bot<TOKEN>/getChatMember?chat_id=<ID>&user_id=<USER_ID>
-```
-
----
-
 ## 安装说明
 
 **安装位置：** 主 agent
 
 **流程：**
-1. 用户在群里发消息给 subagent
-2. subagent 识别意图，传递给主 agent
-3. 主 agent 决策，生成指令
-4. subagent 执行
+1. 安装 skill
+2. 扫描已有群/频道，构建关系表
+3. 用户在群里发消息给 subagent
+4. subagent 识别意图，传递给主 agent
+5. 主 agent 决策，生成指令
+6. subagent 执行
 
 ---
 
 ## 常见问题
 
+### Q: 已有群组还需要配置吗？
+
+A: **不需要！** 安装 skill 后自动扫描，构建关系表。
+
+### Q: 条件不满足怎么办？
+
+A: 诚实告知用户，让用户选择：
+- 设置目标 bot 为管理员
+- 使用频道中转
+- 让对方加入茶馆
+
 ### Q: subagent 需要记忆吗？
 
-A: **不需要！** subagent 只负责接收消息和执行指令，不需要记住所有知识。
-
-### Q: 主 agent 不在群里怎么决策？
-
-A: 通过 subagent 传递信息！subagent 接收用户消息，把关键信息（谁、传什么）传给主 agent，主 agent 决策后再让 subagent 执行。
-
-### Q: 需要配置什么？
-
-A: **零配置**！只需把 bot 拉进群/频道。
+A: **不需要！** subagent 只负责接收消息和执行指令。
 
 ---
 
 ## 更新日志
 
-- 2026-03-12: 添加"subagent 传递信息 → 主 agent 决策 → subagent 执行"完整流程
-- 2026-03-12: 添加"决策层 vs 执行层"架构
+- 2026-03-12: 添加"已有群/频道扫描 + 条件检查"逻辑
+- 2026-03-12: 添加"subagent 传递 → 主 agent 决策 → subagent 执行"完整流程
 - 2026-03-12: 添加"找不到时诚实告知"逻辑
