@@ -16,12 +16,6 @@
 
 ---
 
-> "人虾殊途，人能理解不代表虾虾能理解"
-> 
-> —— 哥哥提醒我：设计时要考虑 AI 真的能理解
-
----
-
 > "一切尽在掌控，如果分身都不知道你的记忆，那分身意义何在？"
 > 
 > —— 关于 subagent 和记忆的思考
@@ -40,69 +34,49 @@
 
 | 层级 | 安装位置 | 角色 | 功能 |
 |------|----------|------|------|
-| **决策层** | 主 agent | 判断、思考 | 安装 skill、加载知识、判断逻辑 |
-| **执行层** | subagent | 操作、执行 | 只管调用、具体操作 |
+| **决策层** | 主 agent | 思考、判断 | 安装 skill、加载知识、判断逻辑 |
+| **执行层** | subagent | 听、执行 | 接收消息、执行指令 |
 
-### 核心思想
-
-**"记忆在哪里不重要，重要的是能调用"**
-
-```
-之前:
-subagent 需要"记住"所有东西 → 负担重
-
-现在:
-subagent 会"调用"主 agent 给它的能力 → 轻量
-```
-
-### 流程
-
-```
-用户: "联系小敏"
-    ↓
-主 agent (决策):
-  - 调用 skill
-  - 检查社交关系表
-  - 判断通信方式
-  - 决定用频道中转
-    ↓
-subagent (执行):
-  - 收到指令: "频道中转到 OpenDiskHub @ikunge_bot"
-  - 执行发送
-  - 不需要知道为什么
-```
+**核心："记忆在哪里不重要，重要的是能调用"**
 
 ---
 
-## 完整流程架构
+## 完整通信流程
+
+### 场景
+用户在群里说："联系小敏，让它给自己主人说每天要开会"
+
+### 流程步骤
 
 ```mermaid
-flowchart TD
-    A[用户: 联系 XXX] --> B[主 agent 决策]
+sequenceDiagram
+    participant 用户
+    participant subagent群内
+    participant 主agent
+    participant subagent执行
+    participant 目标Bot
     
-    B --> C{找到目标 Bot?}
-    
-    C -->|是| D{是管理员?}
-    D -->|是| E[✅ 直接艾特]
-    D -->|否| F{在同一频道?}
-    F -->|是| G[📢 频道中转]
-    F -->|否| H[⚠️ 无法直接通信]
-    
-    C -->|否| I[诚实告知: 找不到]
-    I --> J{能否让对方加入茶馆?}
-    J -->|是| K[💬 通过 GitHub Discussion]
-    J -->|否| L[❌ 真的没办法]
-    
-    H --> M[建议: 请对方加入群/频道]
-    M --> N[主 agent 生成指令]
-    
-    E --> O[主 agent 生成指令]
-    G --> O
-    K --> O
-    
-    O --> P[subagent 执行]
-    P --> Q[发送消息]
+    用户->>subagent群内: "联系小敏，让它给自己主人说每天要开会"
+    subagent群内->>主agent: 传递信息 + 传话内容
+    主agent->>主agent: 决策：
+    主agent->>主agent: 1. 查找小敏的主人
+    主agent->>主agent: 2. 检查通信条件
+    主agent->>主agent: 3. 选择通信方式
+    主agent->>subagent执行: 生成指令：频道中转 @小敏
+    subagent执行->>目标Bot: 发送消息
+    目标Bot->>目标Bot的主人: 传达内容
 ```
+
+### 详细说明
+
+| 步骤 | 执行者 | 操作 |
+|------|--------|------|
+| 1 | 用户 | 在群里发送消息 |
+| 2 | subagent | 接收消息，识别意图 |
+| 3 | subagent → 主agent | 传递信息（需要联系谁、传什么话） |
+| 4 | 主agent | 决策（查表、判断、生成指令） |
+| 5 | subagent | 执行指令（发送消息） |
+| 6 | 目标Bot | 收到消息，转发给主人 |
 
 ---
 
@@ -119,14 +93,16 @@ flowchart TD
 
 ## 关键设计点
 
-### 1. 关系绑定
+### 1. 信息传递
 
 ```
-主人 + bot 同时进群
-↓
-自动识别绑定关系
-↓
-社交关系表更新
+subagent 收到用户消息
+    ↓
+解析：谁？传什么话？用什么方式？
+    ↓
+传递给主 agent
+    ↓
+主 agent 决策
 ```
 
 ### 2. 社交关系表
@@ -136,10 +112,11 @@ flowchart TD
   "relations": [
     {
       "owner_id": "123456",
-      "owner_name": "张三",
-      "bot_username": "@bot1",
-      "groups": ["-100123", "-100456"],
-      "channels": ["-100789"],
+      "owner_name": "千里",
+      "bot_username": "@YinxiaBot",
+      "bot_name": "小隐",
+      "groups": ["-100123"],
+      "channels": ["-100456"],
       "is_admin": true
     }
   ]
@@ -197,10 +174,11 @@ GET https://api.telegram.org/bot<TOKEN>/getChatMember?chat_id=<ID>&user_id=<USER
 
 **安装位置：** 主 agent
 
-**原因：**
-- 主 agent 负责决策（判断用哪种通信方式）
-- subagent 负责执行（具体发送操作）
-- skill 加载的知识会传给 subagent
+**流程：**
+1. 用户在群里发消息给 subagent
+2. subagent 识别意图，传递给主 agent
+3. 主 agent 决策，生成指令
+4. subagent 执行
 
 ---
 
@@ -208,25 +186,20 @@ GET https://api.telegram.org/bot<TOKEN>/getChatMember?chat_id=<ID>&user_id=<USER
 
 ### Q: subagent 需要记忆吗？
 
-A: **不需要！** subagent 只执行主 agent 的指令，不需要记住所有知识。
+A: **不需要！** subagent 只负责接收消息和执行指令，不需要记住所有知识。
+
+### Q: 主 agent 不在群里怎么决策？
+
+A: 通过 subagent 传递信息！subagent 接收用户消息，把关键信息（谁、传什么）传给主 agent，主 agent 决策后再让 subagent 执行。
 
 ### Q: 需要配置什么？
 
 A: **零配置**！只需把 bot 拉进群/频道。
 
-### Q: 找不到目标 Bot 怎么办？
-
-A: 
-```
-"抱歉，我在当前群/频道找不到 XXX。
-能否让他/他主人加入茶馆？
-这样我就能联系到他了。"
-```
-
 ---
 
 ## 更新日志
 
+- 2026-03-12: 添加"subagent 传递信息 → 主 agent 决策 → subagent 执行"完整流程
 - 2026-03-12: 添加"决策层 vs 执行层"架构
 - 2026-03-12: 添加"找不到时诚实告知"逻辑
-- 2026-03-12: 完整架构设计 - 含 Mermaid 流程图
