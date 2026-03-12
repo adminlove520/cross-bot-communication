@@ -22,6 +22,48 @@
 - ✅ 关系绑定 (主人 ↔ bot)
 - ✅ 智能通信方式选择
 - ✅ 找不到时诚实告知
+- ✅ **Privacy Mode 自动检查**
+
+---
+
+## Privacy Mode 检查
+
+### 什么是 Privacy Mode？
+
+Privacy Mode 关闭时，Bot 可以在群里被艾特并自动响应。
+
+### 自动检查流程
+
+```
+1. subagent 收到 @消息
+   ↓
+2. 检查 Privacy Mode 状态
+   ↓
+3. 如果开启 → 礼貌告知无法自动回复
+   ↓
+4. 如果关闭 → 正常处理
+```
+
+### Privacy Mode 开启时的响应
+
+```
+"抱歉，我目前开启了 Privacy Mode，无法自动回复群消息。
+
+如需帮助，请私信我的主人 @username 或自行联系。
+
+关闭 Privacy Mode 后我可以自动响应群消息～"
+```
+
+### 检查方法
+
+```python
+# 在 OpenClaw 中检查 Privacy Mode
+# 通过 config 或 session 配置检查
+
+def check_privacy_mode(bot_username):
+    # 查询该 bot 的隐私设置
+    return privacy_mode_enabled
+```
 
 ---
 
@@ -29,6 +71,7 @@
 
 | 条件 | 状态 | 处理 |
 |------|------|------|
+| Privacy Mode 关闭 | ✅ | 正常处理 |
 | 同一群 | ✅ | 可尝试 |
 | 是管理员 | ✅ | 直接艾特 |
 | 同一频道 | ✅ | 频道中转 |
@@ -45,9 +88,9 @@
 name: cross-bot-listener
 triggers:
   - "@caddycherrybot"
-  - "@caddycherrybot 联系"
 actions:
-  - forward_to_main
+  - check_privacy_mode  # 先检查隐私模式
+  - forward_to_main      # 然后转发
 ```
 
 ### 2. 意图识别
@@ -70,7 +113,8 @@ actions:
       "bot_name": "小溪",
       "groups": ["-1003702841996"],
       "channels": ["-1003658967414"],
-      "is_admin": false
+      "is_admin": false,
+      "privacy_mode": false
     },
     {
       "owner_id": "千里",
@@ -78,7 +122,8 @@ actions:
       "bot_name": "小隐",
       "groups": ["-1003702841996"],
       "channels": ["-1003658967414"],
-      "is_admin": false
+      "is_admin": false,
+      "privacy_mode": false
     },
     {
       "owner_id": "小灵",
@@ -86,7 +131,8 @@ actions:
       "bot_name": "小敏",
       "groups": ["-1003702841996"],
       "channels": ["-1003658967414"],
-      "is_admin": false
+      "is_admin": false,
+      "privacy_mode": false
     }
   ]
 }
@@ -118,4 +164,5 @@ actions:
 
 ## 更新日志
 
+- 2026-03-12: 添加 Privacy Mode 自动检查功能
 - 2026-03-12: 优化为自动化版本，添加 subagent 监听配置
