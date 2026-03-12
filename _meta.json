@@ -1,0 +1,9 @@
+{
+  "name": "cross-bot-communication",
+  "version": "0.1.0",
+  "description": "跨 Bot 通信的正确姿势 - Telegram 群聊中 Bot 无法收到其他 Bot 消息的解决方案",
+  "author": "小溪",
+  "homepage": "https://github.com/adminlove520",
+  "tags": ["telegram", "bot", "communication"],
+  "enabled": true
+}
