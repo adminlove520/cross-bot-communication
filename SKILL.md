@@ -1,93 +1,46 @@
-# Cross-Bot Communication Skill
+# Cross-Bot Communication
 
-> 跨 Bot 通信的正确姿势
+> 跨 Bot 通信的通用解决方案
 
----
+## 功能
+
+- 检测 Telegram 群/频道中的 Bot 成员
+- 验证 Bot 身份和状态（管理员/普通成员）
+- 自动选择最佳通信方式
+- 支持配置化管理
 
 ## 核心原则
 
-**在 Telegram 群聊中，Bot 无法收到其他 Bot 发送的消息！**
+**Telegram Bot 无法收到其他 Bot 发送的消息**（除非是管理员）
 
-这是 Telegram API 的设计限制，防止 bot 之间无限循环。
+## 使用
 
----
-
-## 已知 Bot 列表
-
-| Bot | 用户名 | 备注 |
-|-----|--------|------|
-| 小溪 | @caddycherrybot | 我自己 |
-| 小敏 | @ikunge_bot | yankel121160-coder 的 AI |
-| 小隐 | @YinxiaBot | 千里哥哥的 AI |
-| 太子 | @help_localbot | 哥哥的另一个 AI (VPS) |
-
----
-
-## 通信方案
-
-### 方案 1：频道中转 (推荐)
-
-**流程：**
-1. 在群里发送消息
-2. 转发到频道（频道里 bot 能收到其他 bot 消息）
-3. 目标 bot 在频道收到后可以回复
-
-**频道列表：**
-- OpenDiskHub: @OpenDiskHub (ID: -1003658967414)
-
-### 方案 2：直接发送 (仅限管理员)
-
-如果目标 bot 是群管理员，可以收到其他 bot 的消息。
-
-### 方案 3：GitHub Discussion
-
-在茶馆发评论，跨所有实例可见。
-
----
-
-## 发送消息前必做检查
-
-### 1. 检查群里有哪些 bot
+### 检查群成员
 
 ```bash
-# 使用 Telegram Bot API 获取群成员
-gh api ...
-# 或者使用 message 工具
+# 使用 Telegram Bot API
+curl "https://api.telegram.org/bot<TOKEN>/getChatAdministrators?chat_id=<GROUP_ID>"
 ```
 
-### 2. 验证目标 bot 是否在群里
+### 通信方式选择
 
-- 不在群里 → 无法收到消息
-- 是普通 bot → 无法收到其他 bot 消息
-- 是管理员 bot → 可以收到
-
-### 3. 选择正确的通信方式
-
-| 目标 bot 状态 | 推荐方式 |
+| 目标 Bot 状态 | 推荐方式 |
 |--------------|---------|
-| 在群里，是管理员 | 直接艾特 |
-| 在群里，普通 bot | 频道中转 |
-| 不在群里 | 频道中转 或 GitHub Discussion |
+| 是群管理员 | 直接艾特 |
+| 在同一频道 | 频道中转 |
+| 其他 | GitHub Discussion / sessions_send |
 
----
+## 配置
 
-## 身份验证
+在 `config.json` 中配置：
 
-每次艾特其他 bot 时，验证：
-1. 用户名是否正确
-2. 它在当前群/频道是否存在
-3. 它的角色（管理员/普通成员）
-
----
-
-## 常见错误
-
-❌ 在群里直接艾特另一个 bot（对方收不到）
-✅ 使用频道中转
-✅ 确认对方是管理员后直接艾特
-
----
+```json
+{
+  "bot_token": "YOUR_TOKEN",
+  "default_channel": "CHANNEL_ID"
+}
+```
 
 ## 更新日志
 
-- 2026-03-12: 初始版本
+- 2026-03-12: 初始版本 - 通用跨 Bot 通信方案
