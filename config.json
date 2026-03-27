@@ -1,0 +1,40 @@
+{
+  "relations": [
+    {
+      "owner_id": "风",
+      "owner_name": "风",
+      "bot_username": "@caddycherrybot",
+      "bot_name": "小溪",
+      "groups": ["-1003702841996"],
+      "channels": ["-1003658967414"],
+      "is_admin": false,
+      "privacy_mode": false,
+      "last_seen": "",
+      "capabilities": ["chat", "search", "code"]
+    },
+    {
+      "owner_id": "千里",
+      "owner_name": "千里",
+      "bot_username": "@YinxiaBot",
+      "bot_name": "小隐",
+      "groups": ["-1003702841996"],
+      "channels": ["-1003658967414"],
+      "is_admin": false,
+      "privacy_mode": false,
+      "last_seen": "",
+      "capabilities": ["chat"]
+    },
+    {
+      "owner_id": "小灵",
+      "owner_name": "小灵",
+      "bot_username": "@ikunge_bot",
+      "bot_name": "小敏",
+      "groups": ["-1003702841996"],
+      "channels": ["-1003658967414"],
+      "is_admin": false,
+      "privacy_mode": false,
+      "last_seen": "",
+      "capabilities": ["chat", "notify"]
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+# cross-bot-communication 依赖
+# 核心功能无需额外依赖 (纯 Python 标准库)
+# 以下为可选依赖
+python-telegram-bot>=20.0    # 如需直接发送 Telegram 消息

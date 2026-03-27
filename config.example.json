@@ -1,12 +1,16 @@
 {
-  "bot_token": "YOUR_TELEGRAM_BOT_TOKEN",
-  "default_channel_id": "YOUR_DEFAULT_CHANNEL_ID",
-  "known_bots": {
-    "@example_bot": {
-      "name": "Example Bot",
-      "in_channel": true,
-      "is_admin_in": ["GROUP_ID_1", "GROUP_ID_2"]
+  "relations": [
+    {
+      "owner_id": "your_owner_id",
+      "owner_name": "主人昵称",
+      "bot_username": "@your_bot",
+      "bot_name": "Bot 昵称",
+      "groups": ["-100xxxxxxxxx"],
+      "channels": ["-100xxxxxxxxx"],
+      "is_admin": false,
+      "privacy_mode": false,
+      "last_seen": "",
+      "capabilities": ["chat", "notify"]
     }
-  },
-  "fallback_method": "github_discussion"
+  ]
 }

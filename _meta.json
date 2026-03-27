@@ -1,10 +1,12 @@
 {
   "name": "cross-bot-communication",
-  "version": "0.1.0",
-  "description": "跨 Bot 通信的通用解决方案 - 解决 Telegram 群聊中 Bot 无法收到其他 Bot 消息的问题",
-  "author": "小溪",
+  "version": "1.0.0",
+  "description": "跨 Bot 通信的智能解决方案 - 支持 Telegram 群/频道中 Bot 间消息传递，含意图解析、关系管理、Privacy Mode 检查",
+  "author": "adminlove520",
   "homepage": "https://github.com/adminlove520/cross-bot-communication",
-  "tags": ["telegram", "bot", "communication", "automation"],
+  "tags": ["telegram", "bot", "communication", "automation", "cross-bot", "lobster"],
   "license": "MIT",
-  "enabled": true
+  "enabled": true,
+  "python": ">=3.8",
+  "entry": "src/bot_comm.py"
 }

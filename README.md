@@ -1,207 +1,112 @@
-# Cross-Bot Communication Skill
+# Cross-Bot Communication
 
-> 跨 Bot 通信的智能解决方案 - 完整架构设计
-> 
-> **本 Skill 包含小溪的哲学思考**
+> 跨 Bot 通信的智能解决方案 - 让 AI 助手之间无缝协作
 
----
+## 功能
 
-## 小溪的感悟
+- ✅ **意图解析** - 自动从自然语言中提取目标、动作、消息和紧急程度
+- ✅ **关系管理** - 持久化的 Bot 社交关系表，支持增删改查
+- ✅ **可达性检查** - 自动检测 Privacy Mode / 管理员 / 群组 / 频道等条件
+- ✅ **诚实告知** - 找不到就说找不到，并给出建议方案
+- ✅ **零配置启动** - 将 Bot 拉入群组即可自动绑定
+- ✅ **JSON 输出** - 所有操作支持结构化输出，方便龙虾调用
 
-> "知之为知之，不知为不知，是知也"
-> 
-> **找不到就是找不到，不欺骗用户**
-> 
-> —— 这是做人的道理，也是做 AI 的道理
+## 快速开始
 
----
+### 安装
 
-> "一切尽在掌控，如果分身都不知道你的记忆，那分身意义何在？"
-> 
-> —— 关于 subagent 和记忆的思考
-
----
-
-> "无为而无不为"
-> 
-> —— 让用户只做一件小事（拉 bot 进群），其他自动完成
-
----
-
-## 架构设计
-
-### 决策层 vs 执行层
-
-| 层级 | 安装位置 | 角色 | 功能 |
-|------|----------|------|------|
-| **决策层** | 主 agent | 思考、判断 | 安装 skill、加载知识、判断逻辑 |
-| **执行层** | subagent | 听、执行 | 接收消息、执行指令 |
-
-**核心："记忆在哪里不重要，重要的是能调用"**
-
----
-
-## 完整通信流程
-
-### 场景 1: 新群/新 bot
-用户在群里说："联系小敏，让它给自己主人说每天要开会"
-
-### 场景 2: 已有群/频道
-安装 skill 后，自动扫描已有群组，构建关系表
-
----
-
-## 完整流程（含扫描）
-
-```mermaid
-flowchart TD
-    A[安装 skill] --> B{是否有已有群/频道?}
-    
-    B -->|是| C[扫描已有群组/频道]
-    B -->|否| D[等待用户拉 bot 进群]
-    
-    C --> E[自动构建社交关系表]
-    E --> F[检查硬性条件]
-    
-    D --> G[用户拉 bot 进群]
-    G --> H[自动绑定关系]
-    H --> F
-    
-    F --> I{硬性条件满足?}
-    
-    I -->|是| J[✅ 可直接通信]
-    I -->|否| K[诚实告知 + 建议方案]
-    
-    J --> L[用户: 联系 XXX]
-    K --> L
-    
-    L --> M[subagent 接收]
-    M --> N[→ 主 agent 决策]
-    N --> O[→ subagent 执行]
-    O --> P[发送消息]
+```bash
+git clone https://github.com/adminlove520/cross-bot-communication.git
+cd cross-bot-communication
 ```
 
----
+### 配置
 
-## 硬性条件检查
-
-| 条件 | 状态 | 处理 |
-|------|------|------|
-| bot 在同一群 | ✅ | 可尝试 |
-| bot 是管理员 | ✅ | 可直接艾特 |
-| bot 在同一频道 | ✅ | 频道中转 |
-| 都不满足 | ❌ | 诚实告知 |
-
-### 诚实告知示例
-
-```
-"我扫描了现有群组和频道：
-- 小敏在 OpenDiskHub 频道 ✓
-- 但小敏不是管理员 ⚠️
-
-建议方案：
-1. 设置小敏为管理员 → 可直接艾特
-2. 或者我在频道中转联系它
-
-您选择哪个？"
-```
-
----
-
-## 信息传递流程
-
-```
-subagent 收到用户消息
-    ↓
-解析：谁？传什么话？用什么方式？
-    ↓
-传递给主 agent
-    ↓
-主 agent 决策
-```
-
----
-
-## 核心原则
-
-| 原则 | 说明 |
-|------|------|
-| **诚实** | 找不到就是找不到，不编造 |
-| **不欺骗** | 不假装能用不存在的方式 |
-| **解耦** | 决策与执行分离 |
-| **调用** | 记忆不需要存在，能调用即可 |
-
----
-
-## 社交关系表
+编辑 `config.json`，添加已知的 Bot 关系：
 
 ```json
 {
   "relations": [
     {
-      "owner_id": "123456",
-      "owner_name": "千里",
-      "bot_username": "@YinxiaBot",
-      "bot_name": "小隐",
-      "groups": ["-100123", "-100456"],
-      "channels": ["-100789"],
-      "is_admin": true
+      "owner_id": "风",
+      "owner_name": "风",
+      "bot_username": "@caddycherrybot",
+      "bot_name": "小溪",
+      "groups": ["-1003702841996"],
+      "channels": ["-1003658967414"],
+      "is_admin": false,
+      "privacy_mode": false
     }
   ]
 }
 ```
 
----
+### 使用
 
-## 零配置设计
+```bash
+# 发送跨 Bot 消息
+python main.py send "联系小敏，让它主人明天开会"
 
-用户只需做：
+# 检查 Bot 可达性
+python main.py check 小敏
 
-| 操作 | 说明 |
-|------|------|
-| 1. 把 bot 拉进群 | 自动绑定关系 |
-| 2. 把 bot 拉进频道 | 自动检测 |
-| 3. (可选) 设置 bot 为管理员 | 提升通信成功率 |
+# 列出所有 Bot
+python main.py list
 
-其他全部**自动完成**！
+# 解析意图 (调试)
+python main.py parse "通知小隐，明天要开会"
 
----
+# JSON 输出
+python main.py send "联系小敏" --json
+```
 
-## 安装说明
+### Python API
 
-**安装位置：** 主 agent
+```python
+from src.bot_comm import BotCommunicator
 
-**流程：**
-1. 安装 skill
-2. 扫描已有群/频道，构建关系表
-3. 用户在群里发消息给 subagent
-4. subagent 识别意图，传递给主 agent
-5. 主 agent 决策，生成指令
-6. subagent 执行
+comm = BotCommunicator(config_path="config.json")
 
----
+# 处理用户消息
+result = comm.process_message("联系小敏，让它主人明天开会")
+print(result.success)    # True
+print(result.message)    # "已准备消息..."
+print(result.to_json())  # 完整 JSON
 
-## 常见问题
+# 检查可达性
+info = comm.check_bot("小敏")
 
-### Q: 已有群组还需要配置吗？
+# 管理 Bot
+comm.add_bot("@new_bot", "小新", "主人名", groups=["-100xxx"])
+comm.remove_bot("@old_bot")
+```
 
-A: **不需要！** 安装 skill 后自动扫描，构建关系表。
+## 架构
 
-### Q: 条件不满足怎么办？
+```
+用户消息 → IntentParser(意图解析)
+         → RelationManager(关系查询)
+         → BotCommunicator(决策+消息构建)
+         → 目标 Bot (通过群组/频道中转)
+```
 
-A: 诚实告知用户，让用户选择：
-- 设置目标 bot 为管理员
-- 使用频道中转
-- 让对方加入茶馆
+## 项目结构
 
-### Q: subagent 需要记忆吗？
+```
+cross-bot-communication/
+├── src/
+│   ├── bot_comm.py           # 通信核心引擎
+│   ├── intent_parser.py      # 意图解析器
+│   └── relation_manager.py   # 关系管理器
+├── main.py                   # CLI 入口
+├── config.json               # 关系配置
+└── requirements.txt          # 依赖
+```
 
-A: **不需要！** subagent 只负责接收消息和执行指令。
+## License
 
----
+MIT
 
-## 更新日志
+## 作者
 
-- 2026-03-12: 添加"已有群/频道扫描 + 条件检查"逻辑
-- 2026-03-12: 添加"subagent 传递 → 主 agent 决策 → subagent 执行"完整流程
-- 2026-03-12: 添加"找不到时诚实告知"逻辑
+- GitHub: [@adminlove520](https://github.com/adminlove520)
